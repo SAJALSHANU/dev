@@ -217,7 +217,29 @@ ansible-playbook -i inventory.ini ec2.yaml
 
 <------------------------------ GitHub Actions -------------------------->
 Sr:- medium - ci-cd workflow using GitHub actions in S3 bucket
-Create S3 bucket -> ACLI enabled -> static website enable -> Create S3 bucket -> Copy permission code from GitHub actions medium web -> edit static web -> paste that permission in last -> Save -> create an user -> give perm S3 fullaccess -> create user -> generate AK & SK -> Create repo in GitHub -> create index.html inside repo -> go to repo settings ->go to secrets and variable -> Add bucket name, AK, and SK in it -> Go to actions add workflow and paste sir repo code in main.yaml -> go to static web in aws and copy url and paste in browser.
+Create S3 bucket -> ACLI enabled -> static website enable -> Create S3 bucket ->
+Go to permission -> edit bucket policy and  paste this
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::Bucket-Name/*"
+            ]
+        }
+    ]
+}
+-> edit static web enable ->
+paste that permission in last -> Save -> create an user -> give perm S3 fullaccess -> create user -> generate AK & SK ->
+Create repo in GitHub -> create index.html inside repo -> go to repo settings ->go to secrets and variable -> 
+Add bucket name, AK, and SK in it -> Go to actions add workflow and paste sir repo code in main.yaml -> 
+go to static web in aws and copy url and paste in browser.
 
 <-------------------------------- ECS ------------------------------->
    20  yum install git -y
@@ -253,6 +275,7 @@ Create S3 bucket -> ACLI enabled -> static website enable -> Create S3 bucket ->
    50  docker build -t sajal .
    51  docker tag sajal:latest 286198360158.dkr.ecr.us-east-1.amazonaws.com/sajal:latest
    52  docker push 286198360158.dkr.ecr.us-east-1.amazonaws.com/sajal:latest
+
 
 
 
