@@ -1,0 +1,262 @@
+<--------------- Docker -------------->
+Steps: create an inst and allow port 8080 and 80-> name(docker-host) -> connect to terminal -> set hostname -> install docker
+
+Term:
+yum install docker* -y
+sudo dnf -y install dnf-plugins-core
+rpmquery docker
+systemctl start docker
+systemctl enable docker
+
+->Search dockerhub -> search ubuntu -> open -> copy cmd and paste into term -> do same with httpd and centos
+
+Term: docker run -it --name dockername -p 8080:80 ubuntu:rolling /bin/bash      --> run this cmd to create container
+term(c):-      apt update -y
+      apt install apache2 -y
+      echo "hello" > /var/www/html/index.html
+      service apache2 start
+      service apache2 status
+Term(d) : docker inspect dockername | less
+          curl http://paste ip
+          docker image ls
+          docker ps -a
+          docker stop dockername
+          docker rm dockername        -->to delete container
+          
+         
+<-------------------- EKS ----------------->
+-> Create install and allow port 80 and 8080 ->12 gp3 -> create user -> give policy administrator access -> create i am role and give ec2 fullaccess, eks cluster policy, iamfull access -> attach
+
+// write GitHub code of sir repository to creating cluster and nodegroup then write this inside my-pod.yaml
+vim mypod.yaml:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.14.2
+      ports:
+        - containerPort: 80
+Term:
+       vim mypod.yaml
+       kubectl apply -f mypod.yaml
+       kubectl expose pod nginx --type=LoadBalancer --port=80
+       kubectl get svc
+       kubectl get pods
+
+<--------------------------------------- EKS Webapp ----------------------------->
+-> Create install and allow port 80 and 8080 ->12 gp3 -> create user -> give policy administrator access -> create i am role and give ec2 fullaccess, eks cluster policy, iamfull access -> attach role
+
+Term:- //write sir GitHub all code to create cluster and nodegroup then write this
+vim my-pod.yaml
+//paste this inside my-pod.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # modify replicas according to your case
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: nginx:1.14.2
+
+Term:- 
+   19  kubectl apply -f my-pod.yaml
+   20  kubectl get rs
+   21  kubectl expose rs frontend --port=80 --target-port=80 --type=LoadBalancer
+   22  kubectl get svc
+   23  vim my-pod.yaml
+   24  kubectl get all
+   25  kubectl autoscale rs frontend --max=10 --min=3 --cpu-percent=50
+   26  kubectl get pods
+
+-> copy svc DNS and paste in browser with 80 port
+
+
+<------------------ Ansible ------------>
+Create 2 inst main node and worker node -> connect and set passwd -> set hostname -> ip a s in both term -> 
+
+  Term(mn): passwd root  // do in both terminal
+            ip a s
+            vim /etc/hosts  // paste its private ip and host name and do samething in worker node also
+vim /etc/ssh/sshd_config   // permitrootlogin,passwdbasedauth
+systemctl restart sshd
+systemctl enable sshd
+ssh-keyegen                          // do in both machine
+ssh-copy-id root@<Term private ip>   // do in both machine
+term(mn):
+yum update -y
+yum install ansible-core* -y  |  pip3 install ansible
+ansible --version
+scp /etc/hosts root@<master private ip>:/etc/hosts
+scp /etc/hosts root@<worker private ip>:/etc/hosts
+cd /etc/ansible   --> if not mkdir ansible inside etc
+vim ansible.cfg   --> paste sir ansible repo
+vim hosts 
+// write inside vim hosts 
+[dev-server]
+master-node.example.com
+
+[prod-server]
+node-one.example.com        
+cd
+ansible all -m ping
+mkdir /project
+cd /project/
+
+========== for multiple users =============
+
+vim my-playbook.yaml  --> paste sir ansible - chapter5 - users-loop.yml
+ansible-playbook my-playbook.yaml --syntax-check
+ansible-playbook my-playbook.yaml -C
+ansible-playbook my-playbook.yaml
+
+Term(wn):- cat /etc/passwd  // to check users
+
+============= for install httpd and copy fstab file in /tmp folder =======================
+Term(mn): mkdir /project
+cd /project/
+vim my-playbook.yaml
+//Write this inside my-playbook.yaml
+---
+- name: Install httpd and copy fstab to /tmp
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Install httpd package
+      ansible.builtin.yum:
+        name: httpd
+        state: present
+
+    - name: Ensure httpd service is started and enabled
+      ansible.builtin.service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Copy /etc/fstab to /tmp
+      ansible.builtin.copy:
+        src: /etc/fstab
+        dest: /tmp/fstab
+        remote_src: true
+
+term(mn):-
+ansible-playbook my-playbook.yaml --syntax-check
+ansible-playbook my-playbook.yaml -C
+ansible-playbook my-playbook.yaml
+term(wn):- rpmquery httpd
+cd /tmp
+ls
+curl http://localhost
+
+
+============== Create ec2 using ansible =============
+Term(mn): // same as above and install these 
+-> create user -> attach policy ec2fullaccess, administrator access, generate Access key and Secret key
+Term(mn): // same as above and install these     
+     sudo yum install python3-pip -y
+     pip3 install boto3
+     pip3 install botocore 
+     aws configure
+     ansible-galaxy collection install amazon.aws
+     mkdir /inst
+     cd /inst/
+     vim creds.yaml
+     aws_access_key: //paste AK
+     aws_secret_key: //paste SK
+
+     vim ec2.yaml
+// pate this inside ec2.yaml
+---
+- name: creating ec2 instance
+  hosts: all
+  vars_files:
+
+      - creds.yaml
+  tasks:
+        - name: creating Ec2 instance via Ansible
+          amazon.aws.ec2_instance:
+            aws_access_key: "{{ aws_access_key }}"
+            aws_secret_key: "{{ aws_secret_key }}"
+            name: web-serv
+            instance_type: t2.medium
+            image_id: ami-00ca32bbc84273381
+            vpc_subnet_id: subnet-07557da9ba3082bb1
+            security_group: sg-0e7b493bf8f5f8907
+            key_name: aura
+            region: us-east-1
+            count: 1
+            state: present
+term(mn):- vim inventory.ini
+   //paste this inside inventory file
+[localhost]
+127.0.0.1 ansible_connection=local ansible_python_interpreter=/usr/bin/python3
+
+term(mn):-
+ansible-playbook -i inventory.ini ec2.yaml
+
+//now check your instance in AWS ec2
+     
+
+<------------------------------ GitHub Actions -------------------------->
+Sr:- medium - ci-cd workflow using GitHub actions in S3 bucket
+Create S3 bucket -> ACLI enabled -> static website enable -> Create S3 bucket -> Copy permission code from GitHub actions medium web -> edit static web -> paste that permission in last -> Save -> create an user -> give perm S3 fullaccess -> create user -> generate AK & SK -> Create repo in GitHub -> create index.html inside repo -> go to repo settings ->go to secrets and variable -> Add bucket name, AK, and SK in it -> Go to actions add workflow and paste sir repo code in main.yaml -> go to static web in aws and copy url and paste in browser.
+
+<-------------------------------- ECS ------------------------------->
+   20  yum install git -y
+   21  git clone git@github.com:sajalshanu10542/java-code-with-maven.git
+   22  git clone https://github.com/sajalshanu10542/java-code-with-maven.git
+   23  git add .
+   24  git status
+   25  yum install docker
+   26  cd
+   27  aws configure
+   28  cd /
+   29  ls
+   30  cd code
+   31  ls
+   32  systemctl start docker
+   33  mvn package
+   34  yum install maven -y
+   35  mvn -v
+   36  mvn package
+   37  cd
+   38  yum install maven -y
+   39  cd code
+   40  ll
+   41  mkdir code
+   42  cd code
+   43  git clone https://github.com/sajalshanu10542/java-code-with-maven.git
+   44  mvn package
+   45  cd java-code-with-maven.git
+   46  cd java-code-with-mave
+   47  cd java-code-with-maven
+   48  mvn package
+   49  aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 286198360158.dkr.ecr.us-east-1.amazonaws.com
+   50  docker build -t sajal .
+   51  docker tag sajal:latest 286198360158.dkr.ecr.us-east-1.amazonaws.com/sajal:latest
+   52  docker push 286198360158.dkr.ecr.us-east-1.amazonaws.com/sajal:latest
+
+
+
+
+
+
+
